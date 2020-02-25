@@ -1,0 +1,36 @@
+---
+title: "Sampling database"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+data <- read_tsv("vdjdb.slim.txt")
+```
+
+```{r}
+set.seed(42)
+data %>%
+  filter(species == "HomoSapiens",
+         startsWith(antigen.epitope, "GIL") | 
+           #startsWith(antigen.epitope, "GLC") | 
+           startsWith(antigen.epitope, "LLWN") |
+           startsWith(antigen.epitope, "LLLG") |
+           startsWith(antigen.epitope, "NLV"),
+         !str_detect(reference.id, "10xgenomics")) %>%
+  group_by(gene, antigen.epitope) %>%
+  sample_n(200) %>%
+  ungroup -> data.sample
+
+data.sample %>%
+  glimpse()
+
+data.sample %>%
+  select(gene, cdr3, v.segm, j.segm, antigen.epitope) %>%
+  write_tsv("vdjdb_a02_4epi_trab_200.txt")
+```
