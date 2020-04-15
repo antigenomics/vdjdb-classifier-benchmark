@@ -47,27 +47,39 @@ class EpitopeDataSlim:
     def predict(self, input_data):
         command = f'python pMTnet.py -input {input_data} -library library -output {self.output} ' \
                   f'-output_log {self.output}/output.log'
-        process = subprocess.Popen(command, stdout=subprocess.PIPE)
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
         output, errors = process.communicate()
         if errors:
             print(errors)
-        print(output)
+        if output:
+            print(output)
 
     def prepare_prediction(self):
         merge_list = ['CDR3', 'Antigen', 'HLA']
-        output = pd.read_csv(f'{self.output}/{self.prediction_path}')
+
         if len(self.duplicate):
             self.duplicate['label'] = 0
             self.data = self.data.merge(self.duplicate, left_on=merge_list, right_on=merge_list, how='outer')
             self.data.loc[self.data.label != 0, 'label'] = 1
         else:
             self.data['label'] = 1
+
+        name = '_'.join(self.epitopes)
+        name = f'duplicate_{name}.csv'
+        if not len(self.duplicate):
+            name = 'no_' + name
+        self.save_data(name=name)
+        if self.make_prediction:
+            self.predict(name)
+        output = pd.read_csv(f'{self.output}/{self.prediction_path}')
         self.data = self.data.merge(output.drop('Unnamed: 0', axis=1), left_on=merge_list, right_on=merge_list,
                                     how='outer')
+        self.save_data(name=name)
 
     def roc(self, minus_rank=True):
         i = 0
         fig, axes = plt.subplots(1, len(self.epitopes), figsize=(4 * len(self.epitopes), 2 * len(self.epitopes)))
+
         self.prepare_prediction()
         title = 'Using' if len(self.duplicate) else 'Not using'
         plt.suptitle(f'{title} data with duplicates')
