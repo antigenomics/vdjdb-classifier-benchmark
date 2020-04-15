@@ -66,15 +66,21 @@ class EpitopeDataSlim:
                                     how='outer')
 
     def roc(self, minus_rank=True):
+        i = 0
+        fig, axes = plt.subplots(1, len(self.epitopes), figsize=(4 * len(self.epitopes), 2 * len(self.epitopes)))
         self.prepare_prediction()
-        rank = 1 - self.data.Rank if minus_rank else self.data.Rank
-        fpr, tpr, _ = roc_curve(self.data.label, rank)
-        roc_auc = auc(fpr, tpr)
-        plt.figure(figsize=(6, 4))
-        plt.plot(fpr, tpr, label=f'ROC curve (area = {roc_auc:.2f})', c='darkorange')
         title = 'Using' if len(self.duplicate) else 'Not using'
-        plt.title(f'{title} data with duplicates')
-        plt.xlabel('FPR')
-        plt.ylabel('TPR')
-        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-        plt.legend()
+        plt.suptitle(f'{title} data with duplicates')
+        for epitope, data in self.data.groupby('Antigen'):
+            ax = axes[i]
+            rank = 1 - data.Rank if minus_rank else data.Rank
+            fpr, tpr, _ = roc_curve(data.label, rank)
+            roc_auc = auc(fpr, tpr)
+            ax.plot(fpr, tpr, label=f'ROC curve (area = {roc_auc:.2f})', c='darkorange')
+            ax.set_title(epitope)
+            ax.set_xlabel('FPR')
+            ax.set_ylabel('TPR')
+            ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+            ax.legend(loc='lower right')
+            i += 1
+        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
