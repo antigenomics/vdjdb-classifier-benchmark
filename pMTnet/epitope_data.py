@@ -158,7 +158,7 @@ class EpitopeDataSlim:
 
         # creating a name to save the dataset
         name = '_'.join(self.epitopes)
-        name = f'duplicate_{name}.csv'
+        name = f'duplicate_{name}_{self.chain}.csv'
         if not len(self.duplicate):
             name = 'no_' + name
 
