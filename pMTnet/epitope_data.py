@@ -121,6 +121,7 @@ class EpitopeDataSlim:
         # command line exec
         command = f'python pMTnet.py -input {input_data} -library library -output {self.output} ' \
                   f'-output_log {self.output}/output.log -prediction {self.prediction_path}'
+
         process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
         output, errors = process.communicate()
         if errors:

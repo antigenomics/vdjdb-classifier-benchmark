@@ -18,7 +18,7 @@ random.seed(54321)
 args = sys.argv
 file_dir=args[args.index('-input')+1] #input protein seq file
 library_dir=args[args.index('-library')+1] #directory to downloaded library
-prediction_output = args.prediction
+prediction_output = args[args.index('-prediction')+1]
 
 model_dir=library_dir+'/h5_file'
 aa_dict_dir=library_dir+'/Atchley_factors.csv' #embedding vector for tcr encoding
@@ -315,7 +315,7 @@ for each_data_index in range(TCR_pos_df.shape[0]):
     rank_output.append(rank)
 
 rank_output_matrix=pd.DataFrame({'CDR3':TCR_list,'Antigen':antigen_list,'HLA':HLA_list,'Rank':rank_output},index=range(1,len(TCR_list)+1))
-rank_output_matrix.to_csv(output_dir + f'/{prediction_output}.csv',sep=',')
+rank_output_matrix.to_csv(output_dir + f'/{prediction_output}',sep=',')
 print('Prediction Accomplished.\n')
 log_file.close()
 #delete encoding files
