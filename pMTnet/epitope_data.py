@@ -110,7 +110,7 @@ class EpitopeDataSlim:
                     # adding a dict with the current CDR3 and false epitope
                     duplicate_data.append({'CDR3': x.CDR3, 'Antigen': epitope,
                                            'HLA': x.HLA})
-        return pd.DataFrame(data=duplicate_data)
+        return pd.DataFrame(data=duplicate_data).drop_duplicates()
 
     def predict(self, input_data):
         """
@@ -152,7 +152,6 @@ class EpitopeDataSlim:
         # if there are no duplicates
         # TODO: remove this branch
         else:
-
             # all rows are true, so setting label to 1
             self.data['label'] = 1
 
