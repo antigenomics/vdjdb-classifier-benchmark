@@ -39,7 +39,7 @@ class EpitopeSlimNetTCR:
         # filtering by chain
         return data.loc[data.gene == self.chain]
 
-    def filter_data(self, data, hla='HLA-A*02:01', species='HomoSapiens'):
+    def filter_data(self, data, hla='HLA-A*02', species='HomoSapiens'):
         """
         This function filters HLA and species and mostly prepares data for pMTnet input.
         Args:
@@ -205,7 +205,9 @@ class EpitopeSlimNetTCR:
 
             fpr, tpr, _ = roc_curve(data.label, rank)
             roc_auc = auc(fpr, tpr)
-            ax.plot(fpr, tpr, label=f'ROC curve (area = {roc_auc:.2f})', c='darkorange')
+            ax.plot(fpr, tpr, label=f'ROC curve (area = {roc_auc:.2f})\nPositive = {len(data.loc[data.label == 1])}\n'
+                                    f'Negative = {len(data.loc[data.label == 0])}',
+                    c='darkorange')
             ax.set_title(epitope)
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
