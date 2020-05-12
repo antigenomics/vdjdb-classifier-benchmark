@@ -111,7 +111,8 @@ def build_all_matrices(vdjdb_slim_df, good_epitopes):
     print(f"Selected epitopes with conservative region: {np.round(len(matrices) / good_epitopes.shape[0] * 100, 2)}%")
     return matrices
     
-def get_avg_matrix(matrices, epitopes, epitope=None, species='HomoSapiens', gene='TRB', verbose=False): 
+def get_avg_matrix(matrices, epitopes, epitope=None, species='HomoSapiens',
+                   gene='TRB', verbose=False):
     if epitope:
         selected_epitopes = epitopes[(epitopes['antigen.epitope'] == epitope) & (
             epitopes.species == species) & (epitopes.gene == gene)].values
@@ -176,9 +177,36 @@ def get_mds_imgt_traces(matrice, showlegend=True):
                                      showlegend=showlegend))
     return traces
 
+def get_mds_imgt_traces_agg(matrice, labels, showlegend):
+    mds = MDS(n_components=2, dissimilarity='euclidean')
+    components = mds.fit_transform(matrice.values)
+    n = components.shape[0]
+    traces = []
+    aa2pos = {aa: pos for pos, aa in enumerate(matrice.columns)}
+    for i in range(int(n/AA_N)):
+        class2x = defaultdict(list)
+        class2y = defaultdict(list)
+        for imgt_class, aa_v in IMGT_classes:
+            for aa in aa_v:
+                if aa in aa2pos:
+                    x, y = components[aa2pos[aa] + i*AA_N]
+                    class2x[imgt_class].append(x)
+                    class2y[imgt_class].append(y)
+        for num, (imgt_class, aa_v) in enumerate(IMGT_classes):
+            if imgt_class in class2x:
+                traces.append(go.Scatter(x=class2x[imgt_class],
+                                         y=class2y[imgt_class],
+                                         mode='markers+text',
+                                         marker={'size': 20, 'opacity':0.5},
+                                         line={'color': IMGT_colors[num]},
+                                         name=imgt_class, showlegend=showlegend,
+                                         text=[f'{aa}{i}' for aa in aa_v]))
+    return traces
+
 def plot_mds_IMGT(matrice2params, rows, cols, titles, exclude=None,
+                  oneplot=False, oneplot_labels=None, showlegend=True,
                   width=None, height=None, hspacing=0.05, vspacing=0.1,
-                  bmargin=10, tmargin=25, lmargin=10, rmargin=10):
+                  bmargin=10, tmargin=25, lmargin=10, rmargin=10, fontsize=24):
     fig = make_subplots(rows=rows, cols=cols,
                         subplot_titles=titles,
                         horizontal_spacing=hspacing,
@@ -187,18 +215,18 @@ def plot_mds_IMGT(matrice2params, rows, cols, titles, exclude=None,
         if exclude is not None:
             aa_columns = [a for a in AMINO_ACIDS if a not in exclude]
             matrice = matrice[aa_columns].loc[matrice.index.isin(aa_columns)]
-        if row == 1 and col == 1:
+        if oneplot:
+            traces = get_mds_imgt_traces_agg(matrice, oneplot_labels, showlegend)
+        elif row == 1 and col == 1:
             traces = get_mds_imgt_traces(matrice)
         else:
             traces = get_mds_imgt_traces(matrice, showlegend=False)
         for t in traces:
             fig.append_trace(t, row=row, col=col)
-    for row in range(rows):
-        for col in range(cols):
-            pass
-#             fig.update_xaxes(title_text="mds_x", row=row+1, col=col+1)
-#             fig.update_yaxes(title_text="mds_y", row=row+1, col=col+1)
-    fig.update_traces(textfont_size=24)
+    if row == 1 and col == 1: 
+        fig.update_xaxes(title_text="mds_x", row=1, col=1)
+        fig.update_yaxes(title_text="mds_y", row=1, col=1)
+    fig.update_traces(textfont_size=fontsize)
     fig.update_layout(legend_orientation="h",
                       plot_bgcolor='rgb(248,248,248)',
                       margin=dict(l=lmargin, r=rmargin, b=bmargin, t=tmargin))
