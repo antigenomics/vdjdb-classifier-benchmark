@@ -14,29 +14,36 @@ AA_2_POS = {'A': 0, 'R': 1, 'N': 2, 'D': 3, 'C': 4,
             'S': 15, 'T': 16, 'W': 17, 'Y': 18, 'V': 19}
 AA_N = 20
 
-def read_slim_df(f):
-    vdjdb_slim_df = pd.read_csv(f, sep='\t')
+def read_db(f, dbtype='vdj'):
+    df = pd.read_csv(f, sep='\t')
     
     # Filter referencies from 10xgenomics.com
-    vdjdb_slim_df = vdjdb_slim_df[~vdjdb_slim_df['reference.id'].str.startswith('https://www.10xgenomics.com')]
+    if dbtype == 'vdj':
+        df = df[~df['reference.id'].str.startswith('https://www.10xgenomics.com')]
 
     # Filter bad positions of j.start and v.end
-    vdjdb_slim_df = vdjdb_slim_df[(vdjdb_slim_df['v.end'] < vdjdb_slim_df['j.start']) & (vdjdb_slim_df['v.end'] > 0)]
+    df = df[(df['v.end'] < df['j.start']) & (df['v.end'] > 0)]
 
     # add CDR3 len
-    vdjdb_slim_df['cdr3_len'] = vdjdb_slim_df.cdr3.str.len()
-    return vdjdb_slim_df
+    if dbtype == 'vdj':
+        df['cdr3_len'] = df.cdr3.str.len()
+    elif dbtype == 'clmb':
+        df['cdr3_len'] = df.cdr3aa.str.len()
+    return df
 
-def filter_good_epitopes(vdjdb_slim_df):
-    ept_df = vdjdb_slim_df.groupby(['species', 'gene', 'antigen.epitope', 'cdr3_len'])['cdr3'].count().reset_index()
+def filter_good_epitopes(df, dbtype='vdj'):
+    if dbtype == 'vdj':
+        ept_df = df.groupby(['species', 'gene', 'antigen.epitope', 'cdr3_len'])['cdr3'].count().reset_index()
+    elif dbtype == 'clmb':
+        ept_df = df.groupby(['species', 'gene', 'antigen.epitope', 'cdr3_len'])['cdr3aa'].count().reset_index()
     ept_df.columns = ['species', 'gene', 'antigen.epitope', 'cdr3_len', 'samples_cnt']
     good_epitopes = ept_df[ept_df.samples_cnt >= 30][['species', 'gene', 'antigen.epitope', 'cdr3_len', 'samples_cnt']]
-    vdjdb_slim_df.merge(good_epitopes, how='inner', suffixes=['', '_r'],
-                                    left_on=['species', 'gene', 'antigen.epitope', 'cdr3_len'],
-                                    right_on=['species', 'gene', 'antigen.epitope', 'cdr3_len'])
-    return vdjdb_slim_df, good_epitopes
+    df.merge(good_epitopes, how='inner', suffixes=['', '_r'],
+             left_on=['species', 'gene', 'antigen.epitope', 'cdr3_len'],
+             right_on=['species', 'gene', 'antigen.epitope', 'cdr3_len'])
+    return df, good_epitopes
 
-def filter_slim_df(df, species, epitopes, chains, cdr3_len):
+def filter_df(df, species, epitopes, chains, cdr3_len):
     return df[(df['species'].isin(species)) &
               (df['antigen.epitope'].isin(epitopes)) &
               (df['gene'].isin(chains)) &
@@ -47,8 +54,8 @@ def get_concervative_pos(df, q, vend_tag='v.end', jstart_tag='j.start'):
     end_pos = np.percentile(df[jstart_tag], q=(100-q), interpolation='nearest') - 1
     return start_pos, end_pos
 
-def get_blosum_matrix(df, start_pos, end_pos):
-    cdr3_full = df.cdr3.apply(lambda x: pd.Series(list(x))).values
+def get_blosum_matrix(df, start_pos, end_pos, cdr3_field='cdr3'):
+    cdr3_full = df[cdr3_field].apply(lambda x: pd.Series(list(x))).values
     cdr3 = cdr3_full[:, start_pos:(end_pos+1)]
 
     # Frequency table
@@ -92,18 +99,21 @@ def get_blosum_matrix(df, start_pos, end_pos):
     L = np.round(np.log2(L) * 2)
     return L
 
-def build_all_matrices(vdjdb_slim_df, good_epitopes):
+def build_all_matrices(df, good_epitopes, dbtype='vdj'):
     matrices = {}
     for r in good_epitopes.to_records():
         species, chain, epitope, cdr3_len = r[1], r[2], r[3], r[4]
-        df = filter_slim_df(vdjdb_slim_df, [species], [epitope], [chain], cdr3_len)
+        tmp_df = filter_df(df, [species], [epitope], [chain], cdr3_len)
         if chain == 'TRA':
-            start_pos, end_pos = get_concervative_pos(df, 62)
+            start_pos, end_pos = get_concervative_pos(tmp_df, 62)
         else:
-            start_pos, end_pos = get_concervative_pos(df, 80)
+            start_pos, end_pos = get_concervative_pos(tmp_df, 80)
         if (end_pos - start_pos + 1) == 0:
             continue
-        L = get_blosum_matrix(df, start_pos, end_pos)
+        if dbtype == 'vdj':
+            L = get_blosum_matrix(tmp_df, start_pos, end_pos, cdr3_field='cdr3')
+        elif dbtype == 'clmb':
+            L = get_blosum_matrix(tmp_df, start_pos, end_pos, cdr3_field='cdr3aa')
         result = pd.DataFrame(L, index=AMINO_ACIDS, columns=AMINO_ACIDS)
         matrices[(species, chain, epitope, cdr3_len)] = result
     
@@ -126,8 +136,10 @@ def get_avg_matrix(matrices, epitopes, epitope=None, species='HomoSapiens',
             avg_matrix += matrices[(species, chain, epitope, e_len)]
             found_num += 1
     avg_matrix = (avg_matrix / found_num).round()
-    if verbose:
-        print(f"{gene}, epitope: {epitope}. Found {found_num} variants of CDR3 length")
+    if verbose and epitope:
+        print(f"{gene}, {epitope}. Found {found_num} variants of CDR3 length")
+    elif verbose:
+        print(f"{gene}. Found {found_num} variants of CDR3 length")
     return avg_matrix
 
 def spearman_corr(M1, M2):
