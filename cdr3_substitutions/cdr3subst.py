@@ -99,15 +99,15 @@ def get_blosum_matrix(df, start_pos, end_pos, cdr3_field='cdr3'):
     L = np.round(np.log2(L) * 2)
     return L
 
-def build_all_matrices(df, good_epitopes, dbtype='vdj'):
+def build_all_matrices(df, good_epitopes, dbtype='vdj', tra_conserv=62, trb_conserv=80):
     matrices = {}
     for r in good_epitopes.to_records():
         species, chain, epitope, cdr3_len = r[1], r[2], r[3], r[4]
         tmp_df = filter_df(df, [species], [epitope], [chain], cdr3_len)
         if chain == 'TRA':
-            start_pos, end_pos = get_concervative_pos(tmp_df, 62)
+            start_pos, end_pos = get_concervative_pos(tmp_df, tra_conserv)
         else:
-            start_pos, end_pos = get_concervative_pos(tmp_df, 80)
+            start_pos, end_pos = get_concervative_pos(tmp_df, trb_conserv)
         if (end_pos - start_pos + 1) == 0:
             continue
         if dbtype == 'vdj':
@@ -245,3 +245,9 @@ def plot_mds_IMGT(matrice2params, rows, cols, titles, exclude=None,
     if width and height:
         fig.update_layout(autosize=False, width=width, height=800)
     iplot(fig)
+    
+def save_as_parasail(df_matrix, fpath):
+    out_matrix = np.zeros([AA_N+1, AA_N+1])
+    out_matrix[:-1, :-1] = df_matrix.values
+    out_matrix_df = pd.DataFrame(out_matrix, index=AMINO_ACIDS + ['*'], columns=AMINO_ACIDS + ['*'])
+    out_matrix_df.astype(int).to_csv(fpath, sep=' ')
