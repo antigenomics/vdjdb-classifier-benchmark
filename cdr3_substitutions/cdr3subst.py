@@ -54,7 +54,7 @@ def get_concervative_pos(df, q, vend_tag='v.end', jstart_tag='j.start'):
     end_pos = np.percentile(df[jstart_tag], q=(100-q), interpolation='nearest') - 1
     return start_pos, end_pos
 
-def get_blosum_matrix(df, start_pos, end_pos, cdr3_field='cdr3'):
+def get_blosum_matrix(df, start_pos, end_pos, cdr3_field='cdr3', final_round=True):
     cdr3_full = df[cdr3_field].apply(lambda x: pd.Series(list(x))).values
     cdr3 = cdr3_full[:, start_pos:(end_pos+1)]
 
@@ -96,14 +96,19 @@ def get_blosum_matrix(df, start_pos, end_pos, cdr3_field='cdr3'):
                 L[i, j] = 1
             else:
                 L[i, j] = Q_ij[i, j] / E_ij[i, j]
-    L = np.round(np.log2(L) * 2)
+    L = np.log2(L) * 2
+    if final_round:
+        L = np.round(L)
     return L
 
-def build_all_matrices(df, good_epitopes, dbtype='vdj', tra_conserv=62, trb_conserv=80):
+def build_all_matrices(df, good_epitopes, dbtype='vdj', subsample=None, final_round=True,
+                       random_state=42, tra_conserv=62, trb_conserv=80):
     matrices = {}
     for r in good_epitopes.to_records():
         species, chain, epitope, cdr3_len = r[1], r[2], r[3], r[4]
         tmp_df = filter_df(df, [species], [epitope], [chain], cdr3_len)
+        if subsample and tmp_df.shape[0] > subsample:
+            tmp_df = tmp_df.sample(subsample, random_state=random_state)
         if chain == 'TRA':
             start_pos, end_pos = get_concervative_pos(tmp_df, tra_conserv)
         else:
@@ -111,9 +116,9 @@ def build_all_matrices(df, good_epitopes, dbtype='vdj', tra_conserv=62, trb_cons
         if (end_pos - start_pos + 1) == 0:
             continue
         if dbtype == 'vdj':
-            L = get_blosum_matrix(tmp_df, start_pos, end_pos, cdr3_field='cdr3')
+            L = get_blosum_matrix(tmp_df, start_pos, end_pos, cdr3_field='cdr3', final_round=final_round)
         elif dbtype == 'clmb':
-            L = get_blosum_matrix(tmp_df, start_pos, end_pos, cdr3_field='cdr3aa')
+            L = get_blosum_matrix(tmp_df, start_pos, end_pos, cdr3_field='cdr3aa', final_round=final_round)
         result = pd.DataFrame(L, index=AMINO_ACIDS, columns=AMINO_ACIDS)
         matrices[(species, chain, epitope, cdr3_len)] = result
     
@@ -122,7 +127,7 @@ def build_all_matrices(df, good_epitopes, dbtype='vdj', tra_conserv=62, trb_cons
     return matrices
     
 def get_avg_matrix(matrices, epitopes, epitope=None, species='HomoSapiens',
-                   gene='TRB', verbose=False):
+                   gene='TRB', verbose=False, final_round=True):
     if epitope:
         selected_epitopes = epitopes[(epitopes['antigen.epitope'] == epitope) & (
             epitopes.species == species) & (epitopes.gene == gene)].values
@@ -135,7 +140,9 @@ def get_avg_matrix(matrices, epitopes, epitope=None, species='HomoSapiens',
         if (species, chain, epitope, e_len) in matrices:
             avg_matrix += matrices[(species, chain, epitope, e_len)]
             found_num += 1
-    avg_matrix = (avg_matrix / found_num).round()
+    avg_matrix = avg_matrix / found_num
+    if final_round:
+        avg_matrix = avg_matrix.round()
     if verbose and epitope:
         print(f"{gene}, {epitope}. Found {found_num} variants of CDR3 length")
     elif verbose:
@@ -218,7 +225,8 @@ def get_mds_imgt_traces_agg(matrice, labels, showlegend):
 def plot_mds_IMGT(matrice2params, rows, cols, titles, exclude=None,
                   oneplot=False, oneplot_labels=None, showlegend=True,
                   width=None, height=None, hspacing=0.05, vspacing=0.1,
-                  bmargin=10, tmargin=25, lmargin=10, rmargin=10, fontsize=24):
+                  bmargin=10, tmargin=25, lmargin=10, rmargin=10, fontsize=24,
+                  save_as=None):
     fig = make_subplots(rows=rows, cols=cols,
                         subplot_titles=titles,
                         horizontal_spacing=hspacing,
@@ -244,6 +252,8 @@ def plot_mds_IMGT(matrice2params, rows, cols, titles, exclude=None,
                       margin=dict(l=lmargin, r=rmargin, b=bmargin, t=tmargin))
     if width and height:
         fig.update_layout(autosize=False, width=width, height=800)
+    if save_as:
+        fig.write_image(save_as)
     iplot(fig)
     
 def save_as_parasail(df_matrix, fpath):
