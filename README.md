@@ -33,9 +33,13 @@ To **compare algorithm performance** to other ones it is convenient to use AUC c
 
 ## Results
 Results of algorithm comparison consist of ROC plot for each epitope and calculated AUC on test set. Plots and data can be found in the end of `.ipynb` file for each algorithm.  
+###### netTCR results
 ![netTCR](pics/netTCR.png)
+###### pMTnet results
 ![pMTnet](pics/pMTnet.png)
 
+
+###### TCRdist results with BLOSUM and custom substitution matrix
 For TCRdist we also used our own substitution matrices:
 * the first row represents the results with BLOSUM
 * the second row - with our substitution matrices  
