@@ -15,14 +15,16 @@ For now we support the following algorithms:
 3) [netTCR](https://www.biorxiv.org/content/10.1101/433706v1)
 4) [pMTnet](https://github.com/tianshilu/pMTnet)
 
+Pipelines for these algorithms are provided as **Jupyter notebooks** and are placed in the folders corresponding to their names.
+
 ## Substitution matrices
 Except for the BLOSUM62 substitution matrix, we also provide substitution matrices, which are based on the TCRs receptors sequences (both for alpha-and beta-chains, and single antigens). The main pipeline of building matrices locates [here](https://github.com/antigenomics/vdjdb-classifier-benchmark/tree/master/cdr3_substitutions/CDR3_Substitutions.ipynb) in Jupyter format.
 The precalculated matrices are placed [here](https://github.com/antigenomics/vdjdb-classifier-benchmark/tree/master/cdr3_substitutions/matrices).
 
 ## Usage pipeline
-Pipelines of these algorithms are provided as **Jupyter notebooks** and are placed in the folders, corresponding to their names.
 To recreate the results of the study you need to pull master branch. Please take a look at requirements files as they contain versions of packages required to run the code.  
-Then open `.ipynb` file in a folder with a name of the algorithm you are interested in. To **compare algorithm performance** it is convenient to use AUC calculated for a set of epitopes with ROC for visualization.   
+Then open `.ipynb` file in a folder with a name of the algorithm you are interested in. The input to all pipelines is a set of epitopes for which prediction is tested and training data.  
+To **compare algorithm performance** to other ones it is convenient to use AUC calculated for a set of epitopes with ROC for visualization.   
 Please note as some algorithms use neural networks, speed of computation depends on whether you have a Cuda device.
 
 ## Authors
