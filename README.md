@@ -1,15 +1,15 @@
 # TCR-classifiers benchmark pipeline
 
 ## Our goal
-The analysis of T-cell receptors sequences of an individual allows us to determine, which pathogens and viruses his immune system can detect. The main challenge here is the uncertain matching between receptors and antigens. The TCR-sequences of different lengths and amino acids-content can be complementary to the same antigen.
-The goal of this project is to develop an efficient pipeline to compare the existing methods of the TCR-corresponding antigens prediction.
-We also hypothesize, that building and using custom substitution matrices from TCRs sequences, instead of BLOSUM, can improve antigen-prediction performance.
+The analysis of T-cell receptor sequences of an individual allows us to determine, which pathogens and viruses his immune system can detect. The main challenge here is the uncertain matching between receptors and antigens. The TCR sequences of different lengths and amino acid content can be complementary to the same antigen.  
+The goal of this project is to develop an efficient pipeline to compare the existing methods of the TCR prediction methods.
+We also hypothesize, that usage of custom substitution matrices assembled from TCR sequences, instead of BLOSUM, can improve performance of antigen prediction.
 
 ## Data
-We test all of the methods on the [VDJ-database](https://vdjdb.cdr3.net/) (a curated database of T-cell receptor sequences of known antigen specificity).
+We test all of the methods on [VDJ-database](https://vdjdb.cdr3.net/) (a curated database of T-cell receptor sequences of known antigen specificity).
 
 ## Supported algorithms
-For the current moment, we support these algorithms:
+For now we support the following algorithms:
 1) [GLIPH](https://www.nature.com/articles/nature22976)
 2) [TCRdist](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5616171/)
 3) [netTCR](https://www.biorxiv.org/content/10.1101/433706v1)
@@ -22,8 +22,8 @@ The precalculated matrices are placed [here](https://github.com/antigenomics/vdj
 ## Usage pipeline
 Pipelines of these algorithms are provided as **Jupyter notebooks** and are placed in the folders, corresponding to their names.
 To recreate the results of the study you need to pull master branch. Please take a look at requirements files as they contain versions of packages required to run the code.  
-Then open `.ipynb` file in a folder with a name of the algorithm you are interested in.  
-As some algorithms use neural networks, speed of computation depends on whether you have a Cuda device.
+Then open `.ipynb` file in a folder with a name of the algorithm you are interested in. To **compare algorithm performance** it is convenient to use AUC calculated for a set of epitopes with ROC for visualization.   
+Please note as some algorithms use neural networks, speed of computation depends on whether you have a Cuda device.
 
 ## Authors
 * Alexandra Ovsyannikova, National Research Nuclear University MEPHI
@@ -32,4 +32,4 @@ As some algorithms use neural networks, speed of computation depends on whether 
 ## Acknowledgments
 We want to express gratitude to:
 * Mikhail Shugay for constant support and for providing us with data for the research.  
-* [Bioinformatics institute](https://bioinf.me/en) for organizational assistance
+* [Bioinformatics Institute](https://bioinf.me/en) for organizational assistance
