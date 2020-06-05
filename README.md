@@ -49,7 +49,7 @@ On average AUC grows by 1.5%.
 
 ## Authors
 * Alexandra Ovsyannikova, National Research Nuclear University MEPHI
-* Olga Nedilchenko, National Research University of Technology Bauman Moscow State Technical University
+* Olga Nedilchenko, Bauman Moscow State Technical University
  
 ## Acknowledgments
 We want to express gratitude to:
