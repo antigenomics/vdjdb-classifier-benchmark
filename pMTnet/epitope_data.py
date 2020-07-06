@@ -72,10 +72,10 @@ class EpitopeDataSlim:
 
         # removing 'HLA-' part as in testing_data.csv from pMTnet
         # now keeping only primary part of HLA name
-        data.HLA = hla[4:]
+        data.HLA = data.HLA.str[4:]
 
         # removing duplicated data
-        data = data.drop_duplicates(subset=['CDR3', 'Antigen']).dropna(subset=['CDR3', 'Antigen'])
+        data = data.drop_duplicates(subset=['CDR3', 'Antigen', 'HLA']).dropna(subset=['CDR3', 'Antigen'])
         return data
 
     def save_data(self, name, index=False):
@@ -106,7 +106,6 @@ class EpitopeDataSlim:
 
             # else for each row with CDR - Antigen
             for x in cdr_data.itertuples(index=False):
-
                 # a set of epitopes which are missing
                 # TODO: this step may add exhaustive duplicates which are removed in the end
                 rest_epitopes = set(self.epitopes) - {x.Antigen}
@@ -115,7 +114,7 @@ class EpitopeDataSlim:
                 for epitope in rest_epitopes:
                     # adding a dict with the current CDR3 and false epitope
                     duplicate_data.append({'CDR3': x.CDR3, 'Antigen': epitope,
-                                           'HLA': x.HLA})
+                                           'HLA': self.data.loc[self.data.Antigen == epitope].HLA.values[0]})
         return pd.DataFrame(data=duplicate_data).drop_duplicates()
 
     def predict(self, input_data):
@@ -147,9 +146,9 @@ class EpitopeDataSlim:
         if len(self.duplicate):
 
             # removing duplicates from duplicates :) removing rows that are true (exist in self.data)
-            self.duplicate = self.duplicate.set_index(['CDR3', 'Antigen'])[
-                ~self.duplicate.set_index(['CDR3', 'Antigen']).isin(self.data.set_index(['CDR3', 'Antigen'])).all(
-                    axis=1)].reset_index().dropna()
+            self.duplicate = self.duplicate.loc[
+                ~self.duplicate.set_index(['CDR3', 'Antigen']).index.isin(
+                    self.data.set_index(['CDR3', 'Antigen']).index)].dropna()
 
             # setting label to 0 as these rows are false
             self.duplicate['label'] = 0
